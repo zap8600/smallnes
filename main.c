@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "snake.h"
+
 #define CNFG_IMPLEMENTATION
 #include "rawdraw_sf.h"
 
@@ -106,6 +108,7 @@ void INX() {
 }
 
 int main(int argc, char** argv) {
+    /*
     if(argc != 2) {
         fprintf(stderr, "Usage: %s [NES ROM File]\n", argv[0]);
         return 1;
@@ -121,6 +124,8 @@ int main(int argc, char** argv) {
     write_u16(0xFFFC, 0x0600);
 
     fclose(rom);
+    */
+    memcpy(&(cpu.mem[0x0600]), snake_bin, snake_bin_len);
 
     cpu.pc = read_u16(0xFFFC);
 
@@ -267,6 +272,17 @@ int main(int argc, char** argv) {
                 fprintf(stderr, "Unknown opcode: 0x%x\n", opcode);
                 return 1;
             }
+        }
+
+        write_u8(0xFE, (rand() % 16) + 1);
+
+        for(uint16_t i = 0x0200; i < 0x0600; i++) {
+            setColor(read_u8(i));
+            uint32_t y1 = ((i - 0x0200) / 32) * 10;
+            uint32_t x1 = ((i - 0x0200) % 32) * 10;
+            uint32_t x2 = x1 + 10;
+            uint32_t y1 = y1 + 10;
+            CNFGTackPixel(x1, y1, x2, y2); 
         }
         
         CNFGSwapBuffers();
