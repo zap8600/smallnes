@@ -94,6 +94,12 @@ void HandleMotion(int x, int y, int mask) { }
 int HandleDestroy() { return 0; }
 
 
+void BRANCH(uint8_t cond) {
+    if(cond) {
+        cpu.pc += 1 + (uint16_t)(int8_t)read_u8(cpu.pc);
+    }
+}
+
 void update_zero_neg(uint8_t result) {
     if(!result) {
         cpu.status |= 0x2;
@@ -145,13 +151,15 @@ void CLC() {
     cpu.status &= 0xfe;
 }
 
+uint8_t INC(uint8_t value) {
+    return value + 1;
+}
+
 void ADC(uint8_t value) {
     uint16_t sum = cpu.a + value + (cpu.status & 1);
-    cpu.status &= 0xfe;
-    cpu.status += (sum > 0xff);
+    cpu.status |= (sum > 0xff);
     uint8_t result = (uint8_t)sum;
-    cpu.status &= 0xbf;
-    cpu.status += ((value ^ result) & (result ^ cpu.a) & 0x80 != 0) << 6;
+    cpu.status |= ((value ^ result) & (result ^ cpu.a) & 0x80 != 0) << 6;
     update_zero_neg(result);
     cpu.a = result;
 }
@@ -161,9 +169,12 @@ void JMP() {
 }
 
 void CMP(uint8_t value) {
-    cpu.status &= 0xfe;
-    cpu.status += (value <= cpu.a);
+    cpu.status |= (value <= cpu.a);
     update_zero_neg(cpu.a - value);
+}
+
+void BIT(uint8_t value) {
+    cpu.status |= (((cpu.a & value) == 0) << 1) | (((data & 0x80) > 0) << 7) | (((data & 0x40) > 0) << 6);
 }
 
 int main(int argc, char** argv) {
@@ -362,13 +373,44 @@ int main(int argc, char** argv) {
             case 0x4c:
             {
                 JMP();
-                cpu.pc += 2;
                 break;
             }
 
             case 0xc9:
             {
                 CMP(read_u8(cpu.pc));
+                cpu.pc += 1;
+                break;
+            }
+            case 0xc5:
+            {
+                CMP(read_u8((uint16_t)read_u8(cpu.pc)));
+                cpu.pc += 1;
+                break;
+            }
+
+            case 0xf0:
+            {
+                BRANCH(cpu.status & 2);
+                break;
+            }
+            case 0xd0:
+            {
+                BRANCH(!(cpu.status & 2));
+                break;
+            }
+
+            case 0x24:
+            {
+                BIT(read_u8((uint16_t)(read_u8(cpu.pc))));
+                cpu.pc += 1;
+                break;
+            }
+
+            case 0xe6:
+            {
+                uint16_t addr = (uint16_t)(read_u8(cpu.pc));
+                write_u8(addr, INC(read_u8(addr)));
                 cpu.pc += 1;
                 break;
             }
