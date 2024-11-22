@@ -119,6 +119,11 @@ void LDA(uint8_t value) {
     update_zero_neg(value);
 }
 
+void LDX(uint8_t value) {
+    cpu.x = value;
+    update_zero_neg(value);
+}
+
 void STA(uint16_t addr) {
     write_u8(addr, cpu.a);
 }
@@ -164,6 +169,15 @@ void ADC(uint8_t value) {
     cpu.a = result;
 }
 
+void SBC(uint8_t value) {
+    uint16_t diff = cpu.a - value - 1 + (cpu.status & 1);
+    cpu.status |= (sum > 0xff);
+    uint8_t result = (uint8_t)sum;
+    cpu.status |= ((value ^ result) & (result ^ cpu.a) & 0x80 != 0) << 6;
+    update_zero_neg(result);
+    cpu.a = result;
+}
+
 void JMP() {
     cpu.pc = read_u16(cpu.pc);
 }
@@ -173,8 +187,18 @@ void CMP(uint8_t value) {
     update_zero_neg(cpu.a - value);
 }
 
+void CPX(uint8_t value) {
+    cpu.status |= (value <= cpu.x);
+    update_zero_neg(cpu.x - value);
+}
+
 void BIT(uint8_t value) {
     cpu.status |= (((cpu.a & value) == 0) << 1) | (((data & 0x80) > 0) << 7) | (((data & 0x40) > 0) << 6);
+}
+
+void LDX(uint8_t value) {
+    cpu.x = value;
+    update_zero_neg(value);
 }
 
 int main(int argc, char** argv) {
@@ -399,6 +423,21 @@ int main(int argc, char** argv) {
                 BRANCH(!(cpu.status & 2));
                 break;
             }
+            case 0x10:
+            {
+                BRANCH(!(cpu.status & 0x80));
+                break;
+            }
+            case 0xb0:
+            {
+                BRANCH(cpu.status & 1);
+                break;
+            }
+            case 0x90:
+            {
+                BRANCH(!(cpu.status & 1));
+                break;
+            }
 
             case 0x24:
             {
@@ -411,6 +450,69 @@ int main(int argc, char** argv) {
             {
                 uint16_t addr = (uint16_t)(read_u8(cpu.pc));
                 write_u8(addr, INC(read_u8(addr)));
+                cpu.pc += 1;
+                break;
+            }
+            case 0xe8:
+            {
+                cpu.x += 1;
+                update_zero_neg(cpu.x);
+                break;
+            }
+
+            case 0xa2:
+            {
+                LDX(read_u8(cpu.pc));
+                cpu.pc += 1;
+                break;
+            }
+
+            case 0xe4:
+            {
+                CPX(read_u8((uint16_t)read_u8(cpu.pc)));
+                cpu.pc += 1;
+                break;
+            }
+
+            case 0xa6:
+            {
+                LDX(read_u8((uint16_t)(read_u8(cpu.pc))));
+                cpu.pc += 1;
+
+                break;
+            }
+
+            case 0xca:
+            {
+                cpu.x -= 1;
+                update_zero_neg(cpu.x);
+                break;
+            }
+
+            case 0x8a:
+            {
+                cpu.a = cpu.x;
+                update_zero_neg(cpu.a);
+                break;
+            }
+
+            case 0x4a:
+            {
+                cpu.status |= (cpu.a & 1);
+                cpu.a >>= 1; // never used this op before
+                update_zero_neg(cpu.a);
+                break;
+            }
+
+            case 0x38:
+            {
+                cpu.status |= 1;
+                break;
+            }
+
+            case 0xe9:
+            {
+                SBC(read_u8(cpu.pc));
                 cpu.pc += 1;
                 break;
             }
