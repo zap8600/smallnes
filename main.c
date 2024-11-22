@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "snake.h"
 
@@ -63,6 +64,31 @@ void write_u16(uint16_t addr, uint16_t data) {
     cpu.mem[addr + 1] = data >> 8;
 }
 
+uint8_t pop_u8() {
+    cpu.sp += 1;
+    return read_u8(0x0100 + cpu.sp);
+}
+
+void push_u8(uint8_t data) {
+    write_u8(0x0100 + cpu.sp, data);
+    cpu.sp -= 1;
+}
+
+uint16_t pop_u16() {
+    return ((uint16_t)pop_u8()) | (((uint16_t)pop_u8()) << 8);
+}
+
+void push_u16(uint16_t data) {
+    push_u8(data >> 8);
+    push_u8(data & 0xf);
+}
+
+void ADC(uint8_t value) {
+    uint16_t sum = cpu.a + value + (cpu.status & 1);
+    cpu.status &= 0xfe + (sum > 0xff);
+    cpu.a = (uint8_t)sum;
+}
+
 
 void HandleKey(int keycode, int bDown) {
     if(bDown) {
@@ -78,13 +104,13 @@ void update_zero_neg(uint8_t result) {
     if(!result) {
         cpu.status |= 0x2;
     } else {
-        cpu.status |= 0xfd;
+        cpu.status &= 0xfd;
     }
 
     if(result & 0x80) {
         cpu.status |= 0x80;
     } else {
-        cpu.status |= 0xef;
+        cpu.status &= 0x7f;
     }
 }
 
@@ -105,6 +131,24 @@ void TAX() {
 void INX() {
     cpu.x += 1;
     update_zero_neg(cpu.x);
+}
+
+void JSR() {
+    push_u16(cpu.pc + 1);
+    cpu.pc = read_u16(cpu.pc);
+}
+
+void RTS() {
+    cpu.pc = pop_u16() + 1;
+}
+
+void AND(uint8_t value) {
+    cpu.a &= value;
+    update_zero_neg(cpu.a);
+}
+
+void CLC() {
+    cpu.status &= 0xfe;
 }
 
 int main(int argc, char** argv) {
@@ -128,6 +172,7 @@ int main(int argc, char** argv) {
     memcpy(&(cpu.mem[0x0600]), snake_bin, snake_bin_len);
 
     cpu.pc = read_u16(0xFFFC);
+    cpu.sp = 0xfd;
 
     CNFGSetup("GPU NES", 320, 320);
 
@@ -267,6 +312,36 @@ int main(int argc, char** argv) {
                 return 0;
             }
 
+            case 0x20:
+            {
+                JSR();
+                break;
+            }
+
+            case 0x60:
+            {
+                RTS();
+                break;
+            }
+
+            case 0x29:
+            {
+                AND(read_u8(cpu.pc));
+                cpu.pc += 1;
+                break;
+            }
+
+            case 0x18:
+            {
+                CLC();
+                break;
+            }
+
+            case 0x69:
+            {
+                //
+            }
+
             default:
             {
                 fprintf(stderr, "Unknown opcode: 0x%x\n", opcode);
@@ -286,5 +361,10 @@ int main(int argc, char** argv) {
         }
         
         CNFGSwapBuffers();
+
+        struct timespec tim, tim2;
+        tim.tv_sec = 0;
+        tim.tv_nsec = 70000;
+        nanosleep(&tim, &tim2);
     }
 }
