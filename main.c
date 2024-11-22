@@ -83,12 +83,6 @@ void push_u16(uint16_t data) {
     push_u8(data & 0xf);
 }
 
-void ADC(uint8_t value) {
-    uint16_t sum = cpu.a + value + (cpu.status & 1);
-    cpu.status &= 0xfe + (sum > 0xff);
-    cpu.a = (uint8_t)sum;
-}
-
 
 void HandleKey(int keycode, int bDown) {
     if(bDown) {
@@ -149,6 +143,27 @@ void AND(uint8_t value) {
 
 void CLC() {
     cpu.status &= 0xfe;
+}
+
+void ADC(uint8_t value) {
+    uint16_t sum = cpu.a + value + (cpu.status & 1);
+    cpu.status &= 0xfe;
+    cpu.status += (sum > 0xff);
+    uint8_t result = (uint8_t)sum;
+    cpu.status &= 0xbf;
+    cpu.status += ((value ^ result) & (result ^ cpu.a) & 0x80 != 0) << 6;
+    update_zero_neg(result);
+    cpu.a = result;
+}
+
+void JMP() {
+    cpu.pc = read_u16(cpu.pc);
+}
+
+void CMP(uint8_t value) {
+    cpu.status &= 0xfe;
+    cpu.status += (value <= cpu.a);
+    update_zero_neg(cpu.a - value);
 }
 
 int main(int argc, char** argv) {
@@ -339,7 +354,23 @@ int main(int argc, char** argv) {
 
             case 0x69:
             {
-                //
+                ADC(read_u8(cpu.pc));
+                cpu.pc += 1;
+                break;
+            }
+
+            case 0x4c:
+            {
+                JMP();
+                cpu.pc += 2;
+                break;
+            }
+
+            case 0xc9:
+            {
+                CMP(read_u8(cpu.pc));
+                cpu.pc += 1;
+                break;
             }
 
             default:
