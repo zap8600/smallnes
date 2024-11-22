@@ -124,6 +124,11 @@ void LDX(uint8_t value) {
     update_zero_neg(value);
 }
 
+void LDY(uint8_t value) {
+    cpu.y = value;
+    update_zero_neg(value);
+}
+
 void STA(uint16_t addr) {
     write_u8(addr, cpu.a);
 }
@@ -160,17 +165,12 @@ uint8_t INC(uint8_t value) {
     return value + 1;
 }
 
-void ADC(uint8_t value) {
-    uint16_t sum = cpu.a + value + (cpu.status & 1);
-    cpu.status |= (sum > 0xff);
-    uint8_t result = (uint8_t)sum;
-    cpu.status |= ((value ^ result) & (result ^ cpu.a) & 0x80 != 0) << 6;
-    update_zero_neg(result);
-    cpu.a = result;
+uint8_t DEC(uint8_t value) {
+    return value - 1;
 }
 
-void SBC(uint8_t value) {
-    uint16_t diff = cpu.a - value - 1 + (cpu.status & 1);
+void ADC(uint8_t value) {
+    uint16_t sum = cpu.a + value + (cpu.status & 1);
     cpu.status |= (sum > 0xff);
     uint8_t result = (uint8_t)sum;
     cpu.status |= ((value ^ result) & (result ^ cpu.a) & 0x80 != 0) << 6;
@@ -449,8 +449,11 @@ int main(int argc, char** argv) {
             case 0xe6:
             {
                 uint16_t addr = (uint16_t)(read_u8(cpu.pc));
-                write_u8(addr, INC(read_u8(addr)));
+                uint8_t value = INC(read_u8(addr));
+                write_u8(addr, value);
+                update_zero_neg(value);
                 cpu.pc += 1;
+
                 break;
             }
             case 0xe8:
@@ -512,8 +515,31 @@ int main(int argc, char** argv) {
 
             case 0xe9:
             {
-                SBC(read_u8(cpu.pc));
+                ADC(-((int8_t)read_u8(cpu.pc)) - 1);
                 cpu.pc += 1;
+                break;
+            }
+
+            case 0xe6:
+            {
+                uint16_t addr = (uint16_t)(read_u8(cpu.pc));
+                uint8_t value = DEC(read_u8(addr));
+                write_u8(addr, value);
+                update_zero_neg(value);
+                cpu.pc += 1;
+
+                break;
+            }
+
+            case 0xa0:
+            {
+                LDY(read_u8(cpu.pc));
+                cpu.pc += 1;
+                break;
+            }
+
+            case 0xea:
+            {
                 break;
             }
 
