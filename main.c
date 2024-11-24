@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include "snake.h"
 
@@ -80,7 +79,7 @@ uint16_t pop_u16() {
 
 void push_u16(uint16_t data) {
     push_u8(data >> 8);
-    push_u8(data & 0xf);
+    push_u8(data & 0xff);
 }
 
 
@@ -97,6 +96,8 @@ int HandleDestroy() { return 0; }
 void BRANCH(uint8_t cond) {
     if(cond) {
         cpu.pc += 1 + (uint16_t)(int8_t)read_u8(cpu.pc);
+    } else {
+        cpu.pc += 1;
     }
 }
 
@@ -193,12 +194,7 @@ void CPX(uint8_t value) {
 }
 
 void BIT(uint8_t value) {
-    cpu.status |= (((cpu.a & value) == 0) << 1) | (((data & 0x80) > 0) << 7) | (((data & 0x40) > 0) << 6);
-}
-
-void LDX(uint8_t value) {
-    cpu.x = value;
-    update_zero_neg(value);
+    cpu.status |= (((cpu.a & value) == 0) << 1) | (((value & 0x80) > 0) << 7) | (((value & 0x40) > 0) << 6);
 }
 
 int main(int argc, char** argv) {
@@ -220,6 +216,7 @@ int main(int argc, char** argv) {
     fclose(rom);
     */
     memcpy(&(cpu.mem[0x0600]), snake_bin, snake_bin_len);
+    write_u16(0xFFFC, 0x0600);
 
     cpu.pc = read_u16(0xFFFC);
     cpu.sp = 0xfd;
@@ -231,6 +228,7 @@ int main(int argc, char** argv) {
         CNFGClearFrame();
 
         uint8_t opcode = cpu.mem[cpu.pc];
+        printf("opcode 0x%1x at pc 0x%x\n", opcode, cpu.pc - 0x0600);
         cpu.pc += 1;
 
         switch(opcode) {
@@ -349,12 +347,6 @@ int main(int argc, char** argv) {
             {
                 TAX();
                 break;
-            }
-
-            case 0xE8:
-            {
-                INX();
-                break
             }
 
             case 0x00:
@@ -520,7 +512,7 @@ int main(int argc, char** argv) {
                 break;
             }
 
-            case 0xe6:
+            case 0xc6:
             {
                 uint16_t addr = (uint16_t)(read_u8(cpu.pc));
                 uint8_t value = DEC(read_u8(addr));
@@ -550,22 +542,17 @@ int main(int argc, char** argv) {
             }
         }
 
-        write_u8(0xFE, (rand() % 16) + 1);
+        write_u8(0xFE, (rand() % 255)); // 255 being 0xff, the 8-bit integer max
 
         for(uint16_t i = 0x0200; i < 0x0600; i++) {
             setColor(read_u8(i));
             uint32_t y1 = ((i - 0x0200) / 32) * 10;
             uint32_t x1 = ((i - 0x0200) % 32) * 10;
             uint32_t x2 = x1 + 10;
-            uint32_t y1 = y1 + 10;
-            CNFGTackPixel(x1, y1, x2, y2); 
+            uint32_t y2 = y1 + 10;
+            CNFGTackRectangle(x1, y1, x2, y2); 
         }
         
         CNFGSwapBuffers();
-
-        struct timespec tim, tim2;
-        tim.tv_sec = 0;
-        tim.tv_nsec = 70000;
-        nanosleep(&tim, &tim2);
     }
 }
