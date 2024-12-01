@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "snake.h"
 
@@ -132,6 +133,7 @@ void LDY(uint8_t value) {
 
 void STA(uint16_t addr) {
     write_u8(addr, cpu.a);
+    printf("STA. addr: 0x%x, data: 0x%x\n", addr, cpu.a);
 }
 
 void TAX() {
@@ -228,7 +230,7 @@ int main(int argc, char** argv) {
         CNFGClearFrame();
 
         uint8_t opcode = cpu.mem[cpu.pc];
-        printf("opcode 0x%1x at pc 0x%x\n", opcode, cpu.pc - 0x0600);
+        //printf("opcode 0x%1x at pc 0x%x\n", opcode, cpu.pc - 0x0600);
         cpu.pc += 1;
 
         switch(opcode) {
@@ -554,5 +556,14 @@ int main(int argc, char** argv) {
         }
         
         CNFGSwapBuffers();
+
+        struct timespec remaining, request = { 0, 50000000 };
+
+        int response = nanosleep(&request, &remaining);
+
+        if(response) {
+            fprintf(stderr, "nanosleep failed with return %d!\n", response);
+            return 1;
+        }
     }
 }
