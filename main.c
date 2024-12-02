@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
         }
 
         uint8_t opcode = cpu.mem[cpu.pc];
-        printf("before run:\npc 0x%x op 0x%x pc+1 0x%x pc+2 0x%x\na 0x%x x 0x%x y 0x%x status 0x%x\n\n", cpu.pc - 0x0600, opcode, (cpu.pc - 0x0600) + 1, (cpu.pc - 0x0600) + 2, cpu.a, cpu.x, cpu.y, cpu.status);
+        printf("before run:\npc 0x%x op 0x%x pc+1 0x%x pc+2 0x%x\na 0x%x x 0x%x y 0x%x status 0x%x\n\n", cpu.pc, opcode, cpu.pc + 1, cpu.pc + 2, cpu.a, cpu.x, cpu.y, cpu.status);
         cpu.pc += 1;
 
         switch(opcode) {
@@ -552,7 +552,7 @@ int main(int argc, char** argv) {
             return 1;
         }
 
-        printf("after run:\npc 0x%x op 0x%x pc+1 0x%x pc+2 0x%x\na 0x%x x 0x%x y 0x%x status 0x%x\n\n", cpu.pc - 0x0600, opcode, (cpu.pc - 0x0600) + 1, (cpu.pc - 0x0600) + 2, cpu.a, cpu.x, cpu.y, cpu.status);
+        printf("after run:\npc 0x%x op 0x%x pc+1 0x%x pc+2 0x%x\na 0x%x x 0x%x y 0x%x status 0x%x\n\n", cpu.pc, opcode, cpu.pc + 1, cpu.pc + 2, cpu.a, cpu.x, cpu.y, cpu.status);
 
         step = false;
     }
