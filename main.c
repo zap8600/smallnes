@@ -11,6 +11,9 @@
 
 void setColor(uint8_t byte) {
     uint32_t color;
+    if(byte) {
+        printf("there is actually a value!\n");
+    }
     switch(byte) {
         case 0: color = 0x00000000; break;
         case 1: color = 0xffffffff; break;
@@ -52,6 +55,9 @@ uint8_t read_u8(uint16_t addr) {
 }
 
 void write_u8(uint16_t addr, uint8_t data) {
+    if(addr >= 0x200 && addr < 0x600) {
+        printf("write to fb\n");
+    }
     cpu.mem[addr] = data;
 }
 
@@ -96,7 +102,8 @@ int HandleDestroy() { return 0; }
 
 void BRANCH(uint8_t cond) {
     if(cond) {
-        cpu.pc += 1 + (uint16_t)(int8_t)read_u8(cpu.pc);
+        int8_t jump = (int8_t)read_u8(cpu.pc);
+        cpu.pc += 1 + (uint16_t)jump;
     } else {
         cpu.pc += 1;
     }
@@ -119,6 +126,7 @@ void update_zero_neg(uint8_t result) {
 void LDA(uint8_t value) {
     cpu.a = value;
     update_zero_neg(value);
+    //printf("LDA value: 0x%x\n", value);
 }
 
 void LDX(uint8_t value) {
@@ -133,6 +141,7 @@ void LDY(uint8_t value) {
 
 void STA(uint16_t addr) {
     write_u8(addr, cpu.a);
+    //printf("STA addr: 0x%x, data: 0x%x\n", addr, cpu.a);
 }
 
 void TAX() {
@@ -294,14 +303,14 @@ int main(int argc, char** argv) {
 
             case 0x85:
             {
-                STA(read_u8((uint16_t)(read_u8(cpu.pc))));
+                STA((uint16_t)(read_u8(cpu.pc)));
                 cpu.pc += 1;
 
                 break;
             }
             case 0x95:
             {
-                STA(read_u8((uint16_t)(read_u8(cpu.pc) + cpu.x)));
+                STA((uint16_t)(read_u8(cpu.pc) + cpu.x));
                 cpu.pc += 1;
 
                 break;
@@ -363,6 +372,7 @@ int main(int argc, char** argv) {
 
             case 0x60:
             {
+                //printf("RTS\n");
                 RTS();
                 break;
             }
@@ -408,6 +418,7 @@ int main(int argc, char** argv) {
 
             case 0xf0:
             {
+                //printf("BEQ\n");
                 BRANCH(cpu.status & 2);
                 break;
             }
@@ -481,6 +492,7 @@ int main(int argc, char** argv) {
             case 0xca:
             {
                 cpu.x -= 1;
+                //printf("DEX x: 0x%x, x - 1: 0x%x\n", cpu.x + 1, cpu.x);
                 update_zero_neg(cpu.x);
                 break;
             }
@@ -558,7 +570,7 @@ int main(int argc, char** argv) {
 
         struct timespec remaining, request = { 0, 50000000 };
 
-        int response = nanosleep(&request, &remaining);
+        int response = 0; //nanosleep(&request, &remaining);
 
         if(response) {
             fprintf(stderr, "nanosleep failed with return %d!\n", response);
