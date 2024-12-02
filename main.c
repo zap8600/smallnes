@@ -142,27 +142,9 @@ void STA(uint16_t addr) {
     //printf("STA addr: 0x%x, data: 0x%x\n", addr, cpu.a);
 }
 
-void TAX() {
-    cpu.x = cpu.a;
-    update_zero_neg(cpu.x);
-}
-
 void INX() {
     cpu.x += 1;
     update_zero_neg(cpu.x);
-}
-
-void JSR() {
-    push_u16(cpu.pc + 1);
-    cpu.pc = read_u16(cpu.pc);
-}
-
-void RTS() {
-    cpu.pc = pop_u16() + 1;
-}
-
-void CLC() {
-    cpu.status &= 0xfe;
 }
 
 uint8_t INC(uint8_t value) {
@@ -173,31 +155,9 @@ uint8_t DEC(uint8_t value) {
     return value - 1;
 }
 
-void ADC(uint8_t value) {
-    uint16_t sum = cpu.a + value + (cpu.status & 1);
-    cpu.status |= (sum > 0xff);
-    uint8_t result = (uint8_t)sum;
-    cpu.status |= ((value ^ result) & (result ^ cpu.a) & 0x80 != 0) << 6;
-    update_zero_neg(result);
-    cpu.a = result;
-}
-
-void JMP() {
-    cpu.pc = read_u16(cpu.pc);
-}
-
-void CMP(uint8_t value) {
-    cpu.status |= (value <= cpu.a);
-    update_zero_neg(cpu.a - value);
-}
-
 void CPX(uint8_t value) {
     cpu.status |= (value <= cpu.x);
     update_zero_neg(cpu.x - value);
-}
-
-void BIT(uint8_t value) {
-    cpu.status |= (((cpu.a & value) == 0) << 1) | (((value & 0x80) > 0) << 7) | (((value & 0x40) > 0) << 6);
 }
 
 int main(int argc, char** argv) {
@@ -350,33 +310,35 @@ int main(int argc, char** argv) {
 
             case 0xAA:
             {
-                TAX();
+                cpu.x = cpu.a;
+                update_zero_neg(cpu.x);
                 break;
             }
 
             case 0x00:
             {
                 //printf("program terminated\n");
-                cpu.pc -= 1;
+                return 0;
                 break;
             }
 
             case 0x20:
             {
-                JSR();
+                push_u16(cpu.pc + 1);
+                cpu.pc = read_u16(cpu.pc);
                 break;
             }
 
             case 0x60:
             {
                 //printf("RTS\n");
-                RTS();
+                cpu.pc = pop_u16() + 1;
                 break;
             }
 
             case 0x29:
             {
-                cpu.a &= read_u8(cpu.pc);
+                cpu.a = read_u8(cpu.pc) & cpu.a;
                 update_zero_neg(cpu.a);
                 cpu.pc += 1;
                 break;
@@ -384,32 +346,42 @@ int main(int argc, char** argv) {
 
             case 0x18:
             {
-                CLC();
+                cpu.status &= 0xfe;
                 break;
             }
 
             case 0x69:
             {
-                ADC(read_u8(cpu.pc));
+                uint8_t value = read_u8(cpu.pc);
+                uint16_t sum = ((uint16_t)cpu.a) + ((uint16_t)value) + (cpu.status & 1);
+                cpu.status |= (sum > 0xff);
+                uint8_t result = (uint8_t)sum;
+                cpu.status |= (((value ^ result) & (result ^ cpu.a) & 0x80) != 0) << 6;
+                update_zero_neg(result);
+                cpu.a = result;
                 cpu.pc += 1;
                 break;
             }
 
             case 0x4c:
             {
-                JMP();
+                cpu.pc = read_u16(cpu.pc);
                 break;
             }
 
             case 0xc9:
             {
-                CMP(read_u8(cpu.pc));
+                uint8_t value = read_u8(cpu.pc);
+                cpu.status |= (value <= cpu.a);
+                update_zero_neg(cpu.a - value);
                 cpu.pc += 1;
                 break;
             }
             case 0xc5:
             {
-                CMP(read_u8((uint16_t)read_u8(cpu.pc)));
+                uint8_t value = read_u8(((uint16_t)read_u8(cpu.pc)));
+                cpu.status |= (value <= cpu.a);
+                update_zero_neg(cpu.a - value);
                 cpu.pc += 1;
                 break;
             }
@@ -443,17 +415,16 @@ int main(int argc, char** argv) {
 
             case 0x24:
             {
-                BIT(read_u8((uint16_t)(read_u8(cpu.pc))));
+                uint8_t value = read_u8(((uint16_t)read_u8(cpu.pc)));
+                cpu.status |= ((!(cpu.a & value)) << 1) | (((value & 0x80) > 0) << 7) | (((value & 0x40) > 0) << 6);
                 cpu.pc += 1;
                 break;
             }
 
             case 0xe6:
             {
-                uint16_t addr = (uint16_t)(read_u8(cpu.pc));
-                uint8_t value = INC(read_u8(addr));
-                write_u8(addr, value);
-                update_zero_neg(value);
+                cpu.mem[(uint16_t)(read_u8(cpu.pc))] += 1;
+                update_zero_neg(cpu.mem[(uint16_t)(read_u8(cpu.pc))]);
                 cpu.pc += 1;
 
                 break;
