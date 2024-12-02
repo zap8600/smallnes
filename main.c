@@ -179,7 +179,7 @@ int main(int argc, char** argv) {
     write_u16(0xFFFC, 0x0600);
 
     cpu.pc = read_u16(0xFFFC);
-    cpu.sp = 0xfd;
+    cpu.sp = 0xff;
 
     CNFGSetup("GPU NES", 320, 320);
 
