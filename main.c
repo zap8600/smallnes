@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
 
 #include "snake.h"
@@ -84,11 +85,16 @@ void push_u16(uint16_t data) {
     push_u8(data & 0xff);
 }
 
+bool step = false;
 
 void HandleKey(int keycode, int bDown) {
     if(bDown) {
-        write_u8(0xFF, (uint8_t)keycode);
-        printf("keycode: 0x%x\n", keycode);
+        if(keycode == 0xff0d) {
+            step = true;
+        } else {
+            write_u8(0xFF, (uint8_t)keycode);
+            printf("keycode: 0x%x\n", keycode);
+        }
     } else {
         write_u8(0xFF, 0x00);
     }
@@ -127,11 +133,6 @@ void LDA(uint8_t value) {
     //printf("LDA value: 0x%x\n", value);
 }
 
-void LDX(uint8_t value) {
-    cpu.x = value;
-    update_zero_neg(value);
-}
-
 void LDY(uint8_t value) {
     cpu.y = value;
     update_zero_neg(value);
@@ -153,11 +154,6 @@ uint8_t INC(uint8_t value) {
 
 uint8_t DEC(uint8_t value) {
     return value - 1;
-}
-
-void CPX(uint8_t value) {
-    cpu.status |= (value <= cpu.x);
-    update_zero_neg(cpu.x - value);
 }
 
 int main(int argc, char** argv) {
@@ -426,9 +422,9 @@ int main(int argc, char** argv) {
                 cpu.mem[(uint16_t)(read_u8(cpu.pc))] += 1;
                 update_zero_neg(cpu.mem[(uint16_t)(read_u8(cpu.pc))]);
                 cpu.pc += 1;
-
                 break;
             }
+
             case 0xe8:
             {
                 cpu.x += 1;
@@ -438,23 +434,25 @@ int main(int argc, char** argv) {
 
             case 0xa2:
             {
-                LDX(read_u8(cpu.pc));
+                cpu.x = read_u8(cpu.pc);
+                update_zero_neg(cpu.x);
+                cpu.pc += 1;
+                break;
+            }
+            case 0xa6:
+            {
+                cpu.x = read_u8(((uint16_t)read_u8(cpu.pc)));
+                update_zero_neg(cpu.x);
                 cpu.pc += 1;
                 break;
             }
 
             case 0xe4:
             {
-                CPX(read_u8((uint16_t)read_u8(cpu.pc)));
+                uint8_t value = read_u8(((uint16_t)read_u8(cpu.pc)));
+                cpu.status |= (value <= cpu.x);
+                update_zero_neg(cpu.x - value);
                 cpu.pc += 1;
-                break;
-            }
-
-            case 0xa6:
-            {
-                LDX(read_u8((uint16_t)(read_u8(cpu.pc))));
-                cpu.pc += 1;
-
                 break;
             }
 
@@ -476,7 +474,7 @@ int main(int argc, char** argv) {
             case 0x4a:
             {
                 cpu.status |= (cpu.a & 1);
-                cpu.a >>= 1; // never used this op before
+                cpu.a = cpu.a >> 1;
                 update_zero_neg(cpu.a);
                 break;
             }
@@ -489,25 +487,29 @@ int main(int argc, char** argv) {
 
             case 0xe9:
             {
-                ADC(-((int8_t)read_u8(cpu.pc)) - 1);
+                uint8_t value = read_u8(cpu.pc);
+                uint16_t sum = ((uint16_t)cpu.a) + ((uint16_t)((-((int8_t)value)) - 1)) + (cpu.status & 1);
+                cpu.status |= (sum > 0xff);
+                uint8_t result = (uint8_t)sum;
+                cpu.status |= (((value ^ result) & (result ^ cpu.a) & 0x80) != 0) << 6;
+                update_zero_neg(result);
+                cpu.a = result;
                 cpu.pc += 1;
                 break;
             }
 
             case 0xc6:
             {
-                uint16_t addr = (uint16_t)(read_u8(cpu.pc));
-                uint8_t value = DEC(read_u8(addr));
-                write_u8(addr, value);
-                update_zero_neg(value);
+                cpu.mem[(uint16_t)(read_u8(cpu.pc))] -= 1;
+                update_zero_neg(cpu.mem[(uint16_t)(read_u8(cpu.pc))]);
                 cpu.pc += 1;
-
                 break;
             }
 
             case 0xa0:
             {
-                LDY(read_u8(cpu.pc));
+                cpu.y = read_u8(cpu.pc);
+                update_zero_neg(cpu.y);
                 cpu.pc += 1;
                 break;
             }
