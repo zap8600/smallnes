@@ -4,6 +4,7 @@
 #include <time.h>
 
 #include "snake.h"
+//#include "test.h"
 
 #define CNFG_IMPLEMENTATION
 #include "rawdraw_sf.h"
@@ -11,9 +12,6 @@
 
 void setColor(uint8_t byte) {
     uint32_t color;
-    if(byte) {
-        printf("there is actually a value!\n");
-    }
     switch(byte) {
         case 0: color = 0x00000000; break;
         case 1: color = 0xffffffff; break;
@@ -55,9 +53,6 @@ uint8_t read_u8(uint16_t addr) {
 }
 
 void write_u8(uint16_t addr, uint8_t data) {
-    if(addr >= 0x200 && addr < 0x600) {
-        printf("write to fb\n");
-    }
     cpu.mem[addr] = data;
 }
 
@@ -93,6 +88,9 @@ void push_u16(uint16_t data) {
 void HandleKey(int keycode, int bDown) {
     if(bDown) {
         write_u8(0xFF, (uint8_t)keycode);
+        printf("keycode: 0x%x\n", keycode);
+    } else {
+        write_u8(0xFF, 0x00);
     }
 }
 void HandleButton(int x, int y, int button, int bDown) { }
@@ -161,11 +159,6 @@ void JSR() {
 
 void RTS() {
     cpu.pc = pop_u16() + 1;
-}
-
-void AND(uint8_t value) {
-    cpu.a &= value;
-    update_zero_neg(cpu.a);
 }
 
 void CLC() {
@@ -317,21 +310,21 @@ int main(int argc, char** argv) {
             }
             case 0x8D:
             {
-                STA(read_u8(read_u16(cpu.pc)));
+                STA(read_u16(cpu.pc));
                 cpu.pc += 2;
 
                 break;
             }
             case 0x9D:
             {
-                STA(read_u8((read_u16(cpu.pc) + cpu.x)));
+                STA((read_u16(cpu.pc) + cpu.x));
                 cpu.pc += 2;
 
                 break;
             }
             case 0x99:
             {
-                STA(read_u8((read_u16(cpu.pc) + cpu.y)));
+                STA((read_u16(cpu.pc) + cpu.y));
                 cpu.pc += 2;
 
                 break;
@@ -339,7 +332,7 @@ int main(int argc, char** argv) {
             case 0x81:
             {
                 uint8_t base = read_u8(cpu.pc) + cpu.x;
-                STA(read_u8(((uint16_t)read_u8(base + 1) << 8) | ((uint16_t)read_u8(base))));
+                STA(((uint16_t)read_u8(base + 1) << 8) | ((uint16_t)read_u8(base)));
                 cpu.pc += 1;
 
                 break;
@@ -347,7 +340,7 @@ int main(int argc, char** argv) {
             case 0x91:
             {   
                 uint8_t base = read_u8(cpu.pc);
-                STA(read_u8((((uint16_t)read_u8(base + 1) << 8) | ((uint16_t)read_u8(base))) + cpu.y));
+                STA((((uint16_t)read_u8(base + 1) << 8) | ((uint16_t)read_u8(base))) + cpu.y);
                 cpu.pc += 1;
 
                 break;
@@ -361,7 +354,9 @@ int main(int argc, char** argv) {
 
             case 0x00:
             {
-                return 0;
+                //printf("program terminated\n");
+                cpu.pc -= 1;
+                break;
             }
 
             case 0x20:
@@ -379,7 +374,8 @@ int main(int argc, char** argv) {
 
             case 0x29:
             {
-                AND(read_u8(cpu.pc));
+                cpu.a &= read_u8(cpu.pc);
+                update_zero_neg(cpu.a);
                 cpu.pc += 1;
                 break;
             }
