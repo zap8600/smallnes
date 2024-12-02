@@ -42,7 +42,7 @@ void setColor(uint8_t byte) {
 
 typedef struct CPU {
     uint16_t pc;
-    uint8_t a, x, y, sr, sp, status; // In a VRC Shader, the PC and these registers only require half of a pixel to be stored
+    uint8_t a, x, y, sp, status; // In a VRC Shader, the PC and these registers only require half of a pixel to be stored
     uint8_t mem[0xFFFF]; // When set to the size of the NES RAM (2048B), this will only takes 128 pixels
 } CPU;
 
@@ -89,7 +89,7 @@ bool step = false;
 
 void HandleKey(int keycode, int bDown) {
     if(bDown) {
-        if(keycode == 0xff0d) {
+        if(keycode == CNFG_KEY_ENTER) {
             step = true;
         } else {
             write_u8(0xFF, (uint8_t)keycode);
@@ -188,8 +188,13 @@ int main(int argc, char** argv) {
         
         CNFGClearFrame();
 
+        if(!step) {
+            CNFGSwapBuffers();
+            continue;
+        }
+
         uint8_t opcode = cpu.mem[cpu.pc];
-        //printf("opcode 0x%1x at pc 0x%x\n", opcode, cpu.pc - 0x0600);
+        printf("before run:\npc 0x%x op 0x%x pc+1 0x%x pc+2 0x%x\na 0x%x x 0x%x y 0x%x status 0x%x\n\n", cpu.pc - 0x0600, opcode, (cpu.pc - 0x0600) + 1, (cpu.pc - 0x0600) + 2, cpu.a, cpu.x, cpu.y, cpu.status);
         cpu.pc += 1;
 
         switch(opcode) {
@@ -526,8 +531,7 @@ int main(int argc, char** argv) {
             }
         }
 
-        write_u8(0xFE, (rand() % 255)); // 255 being 0xff, the 8-bit integer max
-
+        write_u8(0xFE, (rand() % 256)); // 256 being right above the 8-bit int max, so 0-255
         for(uint16_t i = 0x0200; i < 0x0600; i++) {
             setColor(read_u8(i));
             uint32_t y1 = ((i - 0x0200) / 32) * 10;
@@ -547,5 +551,9 @@ int main(int argc, char** argv) {
             fprintf(stderr, "nanosleep failed with return %d!\n", response);
             return 1;
         }
+
+        printf("after run:\npc 0x%x op 0x%x pc+1 0x%x pc+2 0x%x\na 0x%x x 0x%x y 0x%x status 0x%x\n\n", cpu.pc - 0x0600, opcode, (cpu.pc - 0x0600) + 1, (cpu.pc - 0x0600) + 2, cpu.a, cpu.x, cpu.y, cpu.status);
+
+        step = false;
     }
 }
