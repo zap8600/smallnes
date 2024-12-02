@@ -93,7 +93,6 @@ void HandleKey(int keycode, int bDown) {
             step = true;
         } else {
             write_u8(0xFF, (uint8_t)keycode);
-            printf("keycode: 0x%x\n", keycode);
         }
     } else {
         write_u8(0xFF, 0x00);
