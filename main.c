@@ -133,7 +133,6 @@ void LDY(uint8_t value) {
 
 void STA(uint16_t addr) {
     write_u8(addr, cpu.a);
-    printf("STA. addr: 0x%x, data: 0x%x\n", addr, cpu.a);
 }
 
 void TAX() {
@@ -287,7 +286,7 @@ int main(int argc, char** argv) {
             case 0xB1:
             {
                 uint8_t base = read_u8(cpu.pc);
-                LDA(read_u8((((uint16_t)read_u8(base) << 8) | ((uint16_t)read_u8(base))) + cpu.y));
+                LDA(read_u8((((uint16_t)read_u8(base + 1) << 8) | ((uint16_t)read_u8(base))) + cpu.y));
                 cpu.pc += 1;
 
                 break;
@@ -337,9 +336,9 @@ int main(int argc, char** argv) {
                 break;
             }
             case 0x91:
-            {
+            {   
                 uint8_t base = read_u8(cpu.pc);
-                STA(read_u8((((uint16_t)read_u8(base) << 8) | ((uint16_t)read_u8(base))) + cpu.y));
+                STA(read_u8((((uint16_t)read_u8(base + 1) << 8) | ((uint16_t)read_u8(base))) + cpu.y));
                 cpu.pc += 1;
 
                 break;
