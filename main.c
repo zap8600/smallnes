@@ -218,6 +218,8 @@ int main(int argc, char** argv) {
 
     fclose(rom);
     */
+    srand(time(0));
+
     memcpy(&(cpu.mem[0x0600]), snake_bin, snake_bin_len);
     write_u16(0xFFFC, 0x0600);
 
