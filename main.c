@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <time.h>
 
 #include "snake.h"
@@ -85,15 +84,9 @@ void push_u16(uint16_t data) {
     push_u8(data & 0xff);
 }
 
-bool step = false;
-
 void HandleKey(int keycode, int bDown) {
     if(bDown) {
-        if(keycode == CNFG_KEY_ENTER) {
-            step = true;
-        } else {
-            write_u8(0xFF, (uint8_t)keycode);
-        }
+        write_u8(0xFF, (uint8_t)keycode);
     } else {
         write_u8(0xFF, 0x00);
     }
@@ -181,19 +174,14 @@ int main(int argc, char** argv) {
     cpu.pc = read_u16(0xFFFC);
     cpu.sp = 0xff;
 
-    CNFGSetup("GPU NES", 320, 320);
+    CNFGSetup("GPU NES Reference", 320, 320);
 
     while(CNFGHandleInput()) { // TODO: Make this terminate on end.
         
         CNFGClearFrame();
 
-        if(!step) {
-            CNFGSwapBuffers();
-            continue;
-        }
-
         uint8_t opcode = cpu.mem[cpu.pc];
-        printf("before run:\npc 0x%x op 0x%x pc+1 0x%x pc+2 0x%x\na 0x%x x 0x%x y 0x%x sp 0x%x status 0x%x\n\n", cpu.pc, opcode, cpu.mem[cpu.pc + 1], cpu.mem[cpu.pc + 2], cpu.a, cpu.x, cpu.y, cpu.sp, cpu.status);
+        //printf("before run:\npc 0x%x op 0x%x pc+1 0x%x pc+2 0x%x\na 0x%x x 0x%x y 0x%x sp 0x%x status 0x%x\n\n", cpu.pc, opcode, cpu.mem[cpu.pc + 1], cpu.mem[cpu.pc + 2], cpu.a, cpu.x, cpu.y, cpu.sp, cpu.status);
         cpu.pc += 1;
 
         switch(opcode) {
@@ -354,9 +342,17 @@ int main(int argc, char** argv) {
             {
                 uint8_t value = read_u8(cpu.pc);
                 uint16_t sum = ((uint16_t)cpu.a) + ((uint16_t)value) + (cpu.status & 1);
-                cpu.status |= (sum > 0xff);
+                if(sum > 0xff) {
+                    cpu.status |= 1;
+                } else {
+                    cpu.status &= 0xfe;
+                }
                 uint8_t result = (uint8_t)sum;
-                cpu.status |= (((value ^ result) & (result ^ cpu.a) & 0x80) != 0) << 6;
+                if(((value ^ result) & (result ^ cpu.a) & 0x80) != 0) {
+                    cpu.status |= 0x40;
+                } else {
+                    cpu.status &= 0xbf;
+                }
                 update_zero_neg(result);
                 cpu.a = result;
                 cpu.pc += 1;
@@ -372,7 +368,11 @@ int main(int argc, char** argv) {
             case 0xc9:
             {
                 uint8_t value = read_u8(cpu.pc);
-                cpu.status |= (value <= cpu.a);
+                if(value <= cpu.a) {
+                    cpu.status |= 1;
+                } else {
+                    cpu.statud &= 0xfe;
+                }
                 update_zero_neg(cpu.a - value);
                 cpu.pc += 1;
                 break;
@@ -380,7 +380,11 @@ int main(int argc, char** argv) {
             case 0xc5:
             {
                 uint8_t value = read_u8(((uint16_t)read_u8(cpu.pc)));
-                cpu.status |= (value <= cpu.a);
+                if(value <= cpu.a) {
+                    cpu.status |= 1;
+                } else {
+                    cpu.statud &= 0xfe;
+                }
                 update_zero_neg(cpu.a - value);
                 cpu.pc += 1;
                 break;
@@ -416,7 +420,22 @@ int main(int argc, char** argv) {
             case 0x24:
             {
                 uint8_t value = read_u8(((uint16_t)read_u8(cpu.pc)));
-                cpu.status |= ((!(cpu.a & value)) << 1) | (((value & 0x80) > 0) << 7) | (((value & 0x40) > 0) << 6);
+                if(!(cpu.a & value)) {
+                    cpu.status |= 2;
+                } else {
+                    cpu.status &= 0xfd;
+                }
+
+                if(value & 0x80) {
+                    cpu.status |= 0x80;
+                } else {
+                    cpu.status &= 0x7f;
+                }
+                if(value & 0x40) {
+                    cpu.status |= 0x40;
+                } else {
+                    cpu.status &= 0xbf;
+                }
                 cpu.pc += 1;
                 break;
             }
@@ -454,7 +473,11 @@ int main(int argc, char** argv) {
             case 0xe4:
             {
                 uint8_t value = read_u8(((uint16_t)read_u8(cpu.pc)));
-                cpu.status |= (value <= cpu.x);
+                if(value <= cpu.x) {
+                    cpu.status |= 1;
+                } else {
+                    cpu.statud &= 0xfe;
+                }
                 update_zero_neg(cpu.x - value);
                 cpu.pc += 1;
                 break;
@@ -493,9 +516,17 @@ int main(int argc, char** argv) {
             {
                 uint8_t value = read_u8(cpu.pc);
                 uint16_t sum = ((uint16_t)cpu.a) + ((uint16_t)((-((int8_t)value)) - 1)) + (cpu.status & 1);
-                cpu.status |= (sum > 0xff);
+                if(sum > 0xff) {
+                    cpu.status |= 1;
+                } else {
+                    cpu.status &= 0xfe;
+                }
                 uint8_t result = (uint8_t)sum;
-                cpu.status |= (((value ^ result) & (result ^ cpu.a) & 0x80) != 0) << 6;
+                if(((value ^ result) & (result ^ cpu.a) & 0x80) != 0) {
+                    cpu.status |= 0x40;
+                } else {
+                    cpu.status &= 0xbf;
+                }
                 update_zero_neg(result);
                 cpu.a = result;
                 cpu.pc += 1;
@@ -550,9 +581,5 @@ int main(int argc, char** argv) {
             fprintf(stderr, "nanosleep failed with return %d!\n", response);
             return 1;
         }
-
-        printf("after run:\npc 0x%x op 0x%x pc+1 0x%x pc+2 0x%x\na 0x%x x 0x%x y 0x%x sp 0x%x status 0x%x\n\n", cpu.pc, opcode, cpu.mem[cpu.pc + 1], cpu.mem[cpu.pc + 2], cpu.a, cpu.x, cpu.y, cpu.sp, cpu.status);
-
-        step = false;
     }
 }
