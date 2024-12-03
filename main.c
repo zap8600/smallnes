@@ -87,8 +87,6 @@ void push_u16(uint16_t data) {
 void HandleKey(int keycode, int bDown) {
     if(bDown) {
         write_u8(0xFF, (uint8_t)keycode);
-    } else {
-        write_u8(0xFF, 0x00);
     }
 }
 void HandleButton(int x, int y, int button, int bDown) { }
