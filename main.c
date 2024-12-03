@@ -414,6 +414,7 @@ int main(int argc, char** argv) {
             }
             case 0x90:
             {
+                printf("BCC\n");
                 BRANCH(!(cpu.status & 1));
                 break;
             }
