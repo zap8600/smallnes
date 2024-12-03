@@ -86,6 +86,7 @@ void push_u16(uint16_t data) {
 
 void HandleKey(int keycode, int bDown) {
     if(bDown) {
+        printf("keycode: 0x%x\n", keycode);
         write_u8(0xFF, (uint8_t)keycode);
     }
 }
