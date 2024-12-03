@@ -371,7 +371,7 @@ int main(int argc, char** argv) {
                 if(value <= cpu.a) {
                     cpu.status |= 1;
                 } else {
-                    cpu.statud &= 0xfe;
+                    cpu.status &= 0xfe;
                 }
                 update_zero_neg(cpu.a - value);
                 cpu.pc += 1;
@@ -383,7 +383,7 @@ int main(int argc, char** argv) {
                 if(value <= cpu.a) {
                     cpu.status |= 1;
                 } else {
-                    cpu.statud &= 0xfe;
+                    cpu.status &= 0xfe;
                 }
                 update_zero_neg(cpu.a - value);
                 cpu.pc += 1;
@@ -476,7 +476,7 @@ int main(int argc, char** argv) {
                 if(value <= cpu.x) {
                     cpu.status |= 1;
                 } else {
-                    cpu.statud &= 0xfe;
+                    cpu.status &= 0xfe;
                 }
                 update_zero_neg(cpu.x - value);
                 cpu.pc += 1;
@@ -500,7 +500,11 @@ int main(int argc, char** argv) {
 
             case 0x4a:
             {
-                cpu.status |= (cpu.a & 1);
+                if(cpu.a & 1) {
+                    cpu.status |= 1;
+                } else {
+                    cpu.status &= 0xfe;
+                }
                 cpu.a = cpu.a >> 1;
                 update_zero_neg(cpu.a);
                 break;
@@ -514,8 +518,8 @@ int main(int argc, char** argv) {
 
             case 0xe9:
             {
-                uint8_t value = read_u8(cpu.pc);
-                uint16_t sum = ((uint16_t)cpu.a) + ((uint16_t)((-((int8_t)value)) - 1)) + (cpu.status & 1);
+                uint8_t value = read_u8(cpu.pc) + 1;
+                uint16_t sum = ((uint16_t)cpu.a) - ((uint16_t)value) + (cpu.status & 1);
                 if(sum > 0xff) {
                     cpu.status |= 1;
                 } else {
