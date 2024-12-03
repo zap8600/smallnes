@@ -520,7 +520,7 @@ int main(int argc, char** argv) {
             case 0xe9:
             {
                 int8_t value = -((int8_t)read_u8(cpu.pc)) - 1;
-                uint16_t sum = ((uint16_t)cpu.a) + ((uint16_t)value) + (cpu.status & 1);
+                uint16_t sum = ((uint16_t)cpu.a) + ((uint16_t)((uint8_t)value)) + (cpu.status & 1);
                 if(sum > 0xff) {
                     cpu.status |= 1;
                 } else {
