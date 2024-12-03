@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include "snake.h"
 //#include "test.h"
@@ -87,7 +86,7 @@ void push_u16(uint16_t data) {
 void HandleKey(int keycode, int bDown) {
     if(bDown) {
 #if defined(_WIN32)
-        keycode |= 0x20; // For some reason, W is 0x57 instead of 0x77 on Windows. Why????
+        keycode |= 0x20; // For some reason, keycodes W, A, S, and D on Windows are missing the 5th bit, so this will fix it, but why is it like this????
 #endif
         write_u8(0xFF, (uint8_t)keycode);
     }
@@ -126,47 +125,11 @@ void LDA(uint8_t value) {
     //printf("LDA value: 0x%x\n", value);
 }
 
-void LDY(uint8_t value) {
-    cpu.y = value;
-    update_zero_neg(value);
-}
-
 void STA(uint16_t addr) {
     write_u8(addr, cpu.a);
-    //printf("STA addr: 0x%x, data: 0x%x\n", addr, cpu.a);
-}
-
-void INX() {
-    cpu.x += 1;
-    update_zero_neg(cpu.x);
-}
-
-uint8_t INC(uint8_t value) {
-    return value + 1;
-}
-
-uint8_t DEC(uint8_t value) {
-    return value - 1;
 }
 
 int main(int argc, char** argv) {
-    /*
-    if(argc != 2) {
-        fprintf(stderr, "Usage: %s [NES ROM File]\n", argv[0]);
-        return 1;
-    }
-
-    FILE* rom = fopen(argv[1], "rb");
-
-    fseek(rom, 0, SEEK_END);
-    unsigned long fileLen = ftell(rom);
-    fseek(rom, 0, SEEK_SET);
-
-    fread(&(cpu.mem[0x0600]), fileLen, 1, rom);
-    write_u16(0xFFFC, 0x0600);
-
-    fclose(rom);
-    */
     srand(time(0));
 
     memcpy(&(cpu.mem[0x0600]), snake_bin, snake_bin_len);
@@ -177,12 +140,11 @@ int main(int argc, char** argv) {
 
     CNFGSetup("GPU NES Reference", 320, 320);
 
-    while(CNFGHandleInput()) { // TODO: Make this terminate on end.
+    while(CNFGHandleInput()) { // TODO: Make this terminate on program end.
         
         CNFGClearFrame();
 
         uint8_t opcode = cpu.mem[cpu.pc];
-        //printf("before run:\npc 0x%x op 0x%x pc+1 0x%x pc+2 0x%x\na 0x%x x 0x%x y 0x%x sp 0x%x status 0x%x\n\n", cpu.pc, opcode, cpu.mem[cpu.pc + 1], cpu.mem[cpu.pc + 2], cpu.a, cpu.x, cpu.y, cpu.sp, cpu.status);
         cpu.pc += 1;
 
         switch(opcode) {
@@ -306,7 +268,7 @@ int main(int argc, char** argv) {
 
             case 0x00:
             {
-                //printf("program terminated\n");
+                printf("BRK, program end.\n");
                 return 0;
                 break;
             }
@@ -320,7 +282,6 @@ int main(int argc, char** argv) {
 
             case 0x60:
             {
-                //printf("RTS\n");
                 cpu.pc = pop_u16() + 1;
                 break;
             }
@@ -393,7 +354,6 @@ int main(int argc, char** argv) {
 
             case 0xf0:
             {
-                //printf("BEQ\n");
                 BRANCH(cpu.status & 2);
                 break;
             }
@@ -577,14 +537,5 @@ int main(int argc, char** argv) {
         }
         
         CNFGSwapBuffers();
-
-        struct timespec remaining, request = { 0, 50000000 };
-
-        int response = 0; //nanosleep(&request, &remaining);
-
-        if(response) {
-            fprintf(stderr, "nanosleep failed with return %d!\n", response);
-            return 1;
-        }
     }
 }
