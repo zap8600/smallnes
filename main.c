@@ -519,15 +519,15 @@ int main(int argc, char** argv) {
 
             case 0xe9:
             {
-                uint8_t value = read_u8(cpu.pc) + 1;
-                uint16_t sum = ((uint16_t)cpu.a) - ((uint16_t)value) + (cpu.status & 1);
+                int8_t value = -((int8_t)read_u8(cpu.pc)) - 1;
+                uint16_t sum = ((uint16_t)cpu.a) + ((uint16_t)value) + (cpu.status & 1);
                 if(sum > 0xff) {
                     cpu.status |= 1;
                 } else {
                     cpu.status &= 0xfe;
                 }
                 uint8_t result = (uint8_t)sum;
-                if(((value ^ result) & (result ^ cpu.a) & 0x80) != 0) {
+                if(((((uint8_t)value) ^ result) & (result ^ cpu.a) & 0x80) != 0) {
                     cpu.status |= 0x40;
                 } else {
                     cpu.status &= 0xbf;
