@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "snake.h"
-//#include "test.h"
 
 #define CNFG_IMPLEMENTATION
 #include "rawdraw_sf.h"
