@@ -86,7 +86,7 @@ void push_u16(uint16_t data) {
 
 void HandleKey(int keycode, int bDown) {
     if(bDown) {
-#if defined(WINDOWS)
+#if defined(_WIN32)
         keycode |= 0x20; // For some reason, W is 0x57 instead of 0x77 on Windows. Why????
 #endif
         printf("keycode 0x%x\n", keycode);
