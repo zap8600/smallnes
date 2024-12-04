@@ -24,6 +24,8 @@ Shader "Emu/NES" {
             typedef struct {
                 uint axysp;
                 uint statuspc;
+                uint writeaddr;
+                uint writeval;
             } cpu_t;
 
             static cpu_t cpu;
@@ -39,7 +41,7 @@ Shader "Emu/NES" {
                 uint idx = (addr >> 2) & 3;
                 addr >>= 4;
                 uint4 raw = _SelfTexture2D[RAM_ADDR(addr)];
-                return raw[idk];
+                return raw[idx];
             }
 
             uint4 frag(v2f_customrendertexture i) : SV_Target {
@@ -52,7 +54,7 @@ Shader "Emu/NES" {
                         return _SelfTexture2D[pos];
                     } else {
                         cpu.axysp = 0;
-                        cpu.statuspc = (0x30 << 16) | _SelfTexture2D[RAM_ADDR(0xFFF)];
+                        cpu.statuspc = (0x30 << 16) | 0x0600;
                     }
                 }
             }
