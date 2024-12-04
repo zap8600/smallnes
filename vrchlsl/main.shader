@@ -32,7 +32,15 @@ Shader "Emu/NES" {
 
             static uint2 s_dim;
 
-            #define RAM_ADDR(lin) uint2(lin % 320, 1 + (lin / 2048))
+            #define RAM_ADDR(lin) uint2(lin % 320, 1 + (lin / 320))
+
+            uint mem_get_text(uint addr) {
+                addr &= 0x0000FFFF; // Ensure 16-bit
+                uint idx = (addr >> 2) & 3;
+                addr >>= 4;
+                uint4 raw = _SelfTexture2D[RAM_ADDR(addr)];
+                return raw[idk];
+            }
 
             uint4 frag(v2f_customrendertexture i) : SV_Target {
                 _SelfTexture2D.GetDimensions(s_dim.x, s_dim.y);
@@ -44,7 +52,7 @@ Shader "Emu/NES" {
                         return _SelfTexture2D[pos];
                     } else {
                         cpu.axysp = 0;
-                        cpu.statuspc = (0x30 << 16) | _SelfTexture2D[RAM_ADDR(0xFFFC)];
+                        cpu.statuspc = (0x30 << 16) | _SelfTexture2D[RAM_ADDR(0xFFF)];
                     }
                 }
             }
