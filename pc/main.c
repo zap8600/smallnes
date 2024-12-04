@@ -137,6 +137,7 @@ int main(int argc, char** argv) {
 
     cpu.pc = read_u16(0xFFFC);
     cpu.sp = 0xff;
+    cpu.status = 0x30;
 
     CNFGSetup("GPU NES Reference", 320, 320);
 

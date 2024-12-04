@@ -1,8 +1,7 @@
 Shader "Emu/NES" {
     Properties {
         [ToggleUI] _Init ("Init", float) = 0
-
-        _ROM ("Program", 2D) = "black" {}
+        [ToggleUI] _InitRaw ("Init directly from _Data_RAM_RAW", float) = 0
 
         _Color ("Tint", Color) = (0, 0, 0, 1)
         _MainTex ("Texture", 2D) = "white" {}
@@ -17,6 +16,8 @@ Shader "Emu/NES" {
             #include "crt.cginc"
             #include "UnityCG.cginc"
 
+            uniform uint _Init;
+
             #pragma vertex CustomRenderTextureVertexShader
             #pragma fragment frag
 
@@ -25,20 +26,26 @@ Shader "Emu/NES" {
                 uint statuspc;
             } cpu_t;
 
-            Texture2D<uint4> _ROM;
+            static cpu_t cpu;
+
+            Texture2D<uint4> _Data_CARTROM;
 
             static uint2 s_dim;
-            static uint2 m_dim;
+
+            #define RAM_ADDR(lin) uint2(lin % 320, 1 + (lin / 2048))
 
             uint4 frag(v2f_customrendertexture i) : SV_Target {
                 _SelfTexture2D.GetDimensions(s_dim.x, s_dim.y);
-                _ROM.GetDimensions(m_dim.x, m_dim.y);
 
                 uint2 pos = i.globalTexcoord.xy * s_dim;
 
                 if(_Init) {
-                    // Probably write the program into memory
-                    
+                    if(_InitRaw) {
+                        return _SelfTexture2D[pos];
+                    } else {
+                        cpu.axysp = 0;
+                        cpu.statuspc = (0x30 << 16) | _SelfTexture2D[RAM_ADDR(0xFFFC)];
+                    }
                 }
             }
         }
