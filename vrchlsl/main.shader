@@ -11,12 +11,15 @@ Shader "Emu/NES" {
         Tags{ "RenderType"="Opaque" "Queue"="Geometry" }
 
         Pass {
+            Name "CPU"
+
             CGPROGRAM
+            #pragma target 5.0
 
             #include "crt.cginc"
             #include "UnityCG.cginc"
 
-            uniform uint _Init;
+            uniform uint _Init;, _InitRaw
 
             #pragma vertex CustomRenderTextureVertexShader
             #pragma fragment frag
@@ -29,8 +32,6 @@ Shader "Emu/NES" {
             } cpu_t;
 
             static cpu_t cpu;
-
-            Texture2D<uint4> _Data_CARTROM;
 
             static uint2 s_dim;
 
@@ -85,10 +86,46 @@ Shader "Emu/NES" {
                     }
 
                     // Execute the CPU
+                }
+                return uint4(cpu.axysp, (cpu.statuspc & 0xFFFFFF) | (cpu.writeaddr << 24), ((cpu.writeaddr >> 8) & 0xFFFF) | cpu.writeval << 16, 0xFFFFFFFF);
+            }
+            ENDCG
+        }
 
-                    return uint4(cpu.axysp, (cpu.statuspc & 0xFFFFFF) | (cpu.writeaddr << 24), ((cpu.writeaddr >> 8) & 0xFFFF) | cpu.writeval << 16, 0xFFFFFFFF);
+        Pass {
+            Name "Commit"
+
+            CGPROGRAM
+            #pragma target 5.0
+
+            #include "crt.cginc"
+            #include "UnityCG.cginc"
+
+            float _Init;, _InitRaw
+
+            #pragma vertex CustomRenderTextureVertexShader
+            #pragma fragment frag
+
+            Texture2D<float4> _Data_CARTROM;
+
+            static uint2 s_dim;
+
+            #define RAM_ADDR(lin) uint2(lin % 320, 1 + (lin / 320))
+            #define PIXEL_ADDR(pos) uint()
+
+            uint4 frag(v2f_customrendertexture i) : SV_Target {
+                _SelfTexture2D.GetDimensions(s_dim.x, s_dim.y);
+
+                uint2 pos = i.globalTexcoord.xy * s_dim;
+
+                if(_Init && _InitRaw) {
+                    if(pos >= RAM_ADDR(0x0600)) {
+
+                    }
                 }
             }
+
+            ENDCG
         }
     }
 }
