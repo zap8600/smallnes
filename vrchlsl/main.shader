@@ -181,10 +181,7 @@ Shader "Emu/NES" {
                 }
 
                 if(_Init && _InitRaw) {
-                    uint2 progpos = RAM_ADDR(0x600);
-                    if(pos >= progpos) {
-                        
-                    }
+                    // TODO: Check for what pixel we're in and see if it's within RAM, and update the pixel based on program data if so
                 } else {
                     if(cpu.writeaddr <= 0x7FF) {
                         if(cpu.writeval > 0xFF) {
